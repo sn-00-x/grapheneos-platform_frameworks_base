@@ -34,6 +34,7 @@ import android.annotation.SystemApi;
 import android.annotation.TestApi;
 import android.annotation.UiContext;
 import android.app.WindowConfiguration;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
@@ -1280,6 +1281,9 @@ public abstract class Window {
      */
     public void setFlags(int flags, int mask) {
         final WindowManager.LayoutParams attrs = getAttributes();
+        if (AndroidAutoHelper.isMediaAppContext()) {
+            flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
+        }
         attrs.flags = (attrs.flags&~mask) | (flags&mask);
         mForcedWindowFlags |= mask;
         dispatchWindowAttributesChanged(attrs);

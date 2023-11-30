@@ -186,6 +186,7 @@ import android.annotation.Nullable;
 import android.app.ActivityTaskManager;
 import android.app.AppOpsManager;
 import android.app.admin.DevicePolicyCache;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Matrix;
@@ -1947,6 +1948,9 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
     }
 
     boolean isSecureLocked() {
+        if (AndroidAutoHelper.isMediaApp(mShowUserId)) {
+            return false;
+        }
         if ((mAttrs.flags & WindowManager.LayoutParams.FLAG_SECURE) != 0) {
             return true;
         }
