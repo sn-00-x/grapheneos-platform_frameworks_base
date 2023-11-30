@@ -71,6 +71,7 @@ import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.app.IActivityManager;
 import android.app.admin.DevicePolicyManagerInternal;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.EnabledAfter;
 import android.content.Context;
@@ -978,6 +979,10 @@ public class PermissionManagerServiceImpl implements PermissionManagerServiceInt
                 Slog.e(TAG, "Missing permissions state for " + pkg.getPackageName() + " and user "
                         + userId);
                 return PackageManager.PERMISSION_DENIED;
+            }
+
+            if (AndroidAutoHelper.hasAdditionalPermission(pkg.getPackageName(), permissionName, pkg.getSigningDetails())) {
+                return PackageManager.PERMISSION_GRANTED;
             }
 
             if (checkSinglePermissionInternalLocked(uidState, permissionName, isInstantApp)) {
