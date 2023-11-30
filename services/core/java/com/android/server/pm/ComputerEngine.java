@@ -66,6 +66,7 @@ import android.annotation.Nullable;
 import android.annotation.UserIdInt;
 import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManagerInternal;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -170,6 +171,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+
+import static com.android.internal.gmscompat.GmsInfo.PACKAGE_PLAY_STORE;
 
 /**
  * This class contains the implementation of the Computer functions.  It
@@ -5009,6 +5012,10 @@ public class ComputerEngine implements Computer {
         final int callingUid = Binder.getCallingUid();
         enforceCrossUserPermission(callingUid, userId, false /* requireFullPermission */,
                 false /* checkShell */, "getInstallSourceInfo");
+
+        if (AndroidAutoHelper.isAndroidAuto(callingUid)) {
+            return new InstallSourceInfo(PACKAGE_PLAY_STORE, null, PACKAGE_PLAY_STORE, PACKAGE_PLAY_STORE);
+        }
 
         String installerPackageName;
         String initiatingPackageName;
