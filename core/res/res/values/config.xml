@@ -2202,7 +2202,7 @@
     <!-- The name of the package that will hold the system gallery role. -->
     <string name="config_systemGallery" translatable="false">com.android.gallery3d</string>
     <!-- The names of the packages that will hold the automotive projection role. -->
-    <string name="config_systemAutomotiveProjection" translatable="false"></string>
+    <string name="config_systemAutomotiveProjection" translatable="false">com.google.android.projection.gearhead:fdb00c43dbde8b51cb312aa81d3b5fa17713adb94b28f598d77f8eb89daceedf</string>
     <!-- The name of the package that will hold the system cluster service role. -->
     <string name="config_systemAutomotiveCluster" translatable="false"></string>
     <!-- The name of the package that will hold the system shell role. -->
@@ -4338,7 +4338,9 @@
          Note that config_companionDeviceManagerPackage and config_companionDeviceCerts are
          parallel arrays.
      -->
-    <string-array name="config_companionDevicePackages" translatable="false"></string-array>
+    <string-array name="config_companionDevicePackages" translatable="false">
+        <item>com.google.android.projection.gearhead</item>
+    </string-array>
 
     <!-- A list of SHA256 Certificates managing companion device(s) by the same manufacturers as
          the main device. It will fall back to showing a prompt if the association has been called
@@ -4347,7 +4349,9 @@
          arrays.
          Example: "1A:2B:3C:4D"
      -->
-    <string-array name="config_companionDeviceCerts" translatable="false"></string-array>
+    <string-array name="config_companionDeviceCerts" translatable="false">
+        <item>FD:B0:0C:43:DB:DE:8B:51:CB:31:2A:A8:1D:3B:5F:A1:77:13:AD:B9:4B:28:F5:98:D7:7F:8E:B8:9D:AC:EE:DF</item>
+    </string-array>
 
     <!-- The package name for the default wellbeing app.
          This package must be trusted, as it has the permissions to control other applications

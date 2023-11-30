@@ -20,6 +20,7 @@ import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.compat.gms.GmsCompat;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
@@ -1282,6 +1283,7 @@ public class Instrumentation {
             throws InstantiationException, IllegalAccessException, 
             ClassNotFoundException {
         GmsCompat.maybeEnable(context);
+        AndroidAutoHelper.applicationStart(context);
         Application app = getFactory(context.getPackageName())
                 .instantiateApplication(cl, className);
         app.attach(context);
@@ -1301,6 +1303,7 @@ public class Instrumentation {
             throws InstantiationException, IllegalAccessException, 
             ClassNotFoundException {
         GmsCompat.maybeEnable(context);
+        AndroidAutoHelper.applicationStart(context);
         Application app = (Application)clazz.newInstance();
         app.attach(context);
         return app;
