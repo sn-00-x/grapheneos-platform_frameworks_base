@@ -27,6 +27,7 @@ import android.content.pm.SigningDetails;
 import android.content.pm.SigningInfo;
 import android.os.Build;
 import android.os.RemoteException;
+import android.provider.Settings;
 import android.util.ArraySet;
 import android.util.PackageUtils;
 
@@ -38,13 +39,19 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * This class provides helpers for Android Auto
+ * This class provides helpers for Android Auto and screen2auto.
  *
  * @hide
  */
 public final class AndroidAutoHelper {
     private static final String PACKAGE_ANDROIDAUTO = "com.google.android.projection.gearhead";
     private static final String SIGNATURE_ANDROIDAUTO = "FDB00C43DBDE8B51CB312AA81D3B5FA17713ADB94B28F598D77F8EB89DACEEDF"; // CN=gearhead, OU=Android, O=Google Inc., L=Mountain View, ST=California, C=US
+    // change the following two lines for screen2auto support
+    private static final String PACKAGE_SCREEN2AUTO = null;
+    private static final String SIGNATURE_SCREEN2AUTO = null;
+
+    private static boolean androidAutoActive = false;
+    private static boolean screenCaptureActive = false;
 
     // Define additionally allowed permissions for AndroidAuto
     private static final ArrayList<String> PERMISSIONS_ANDROIDAUTO = new ArrayList<String>(
@@ -64,10 +71,34 @@ public final class AndroidAutoHelper {
             )
     );
 
+    /* Define additionally allowed permissions for Screen2Auto - these will only be allowed when car is connected(!) */
+    private static final ArrayList<String> PERMISSIONS_SCREEN2AUTO = new ArrayList<String>(
+            Arrays.asList(
+                    "android.permission.CAPTURE_VIDEO_OUTPUT", // avoid cast confirmation dialog
+                    "android.permission.SYSTEM_APPLICATION_OVERLAY", // display over other apps
+                    "android.permission.START_ACTIVITIES_FROM_BACKGROUND"
+            )
+    );
+    // grant additional permissions while screen2auto is capturing the screen
+    private static final ArrayList<String> PERMISSIONS_SCREEN2AUTO_DURING_SCREENCAPTURE = new ArrayList<String>(
+            Arrays.asList(
+                    "android.permission.BIND_ACCESSIBILITY_SERVICE"
+            )
+    );
+
+    // Spoof permission checks for Screen2Auto
+    private static final ArrayList<String> SPOOF_PERMISSIONS_SCREEN2AUTO = new ArrayList<String>(
+            Arrays.asList(
+                    "android.permission.SYSTEM_APPLICATION_OVERLAY" // display over other apps
+            )
+    );
+
     private static boolean isAndroidAuto = false;
+    private static boolean isScreen2Auto = false;
     private static Context context;
 
     private static int androidAutoUid = -1;
+    private static int screen2AutoUid = -1;
 
     // Static only
     private AndroidAutoHelper() { }
@@ -195,6 +226,70 @@ public final class AndroidAutoHelper {
     }
 
     /**
+     * Checks if packageName is Screen2Auto and package has matching signature
+     *
+     * @hide
+     */
+    public static boolean isScreen2Auto(String packageName) {
+        if (PACKAGE_SCREEN2AUTO == null) {
+            return false;
+        }
+        if (!PACKAGE_SCREEN2AUTO.equals(packageName)) {
+            return false;
+        }
+
+        IPackageManager pm = ActivityThread.getPackageManager();
+        try {
+            ApplicationInfo ai = pm.getApplicationInfo(packageName, 0, 0);
+            if (ai.uid == screen2AutoUid) {
+                return true;
+            } else if (screen2AutoUid == -1) {
+                if (packageMatchesSignatureDigests(packageName, new ArraySet<>(Collections.singletonList(SIGNATURE_SCREEN2AUTO)))) {
+                    synchronized (AndroidAutoHelper.class) {
+                        screen2AutoUid = ai.uid;
+                    }
+                    return true;
+                }
+            }
+        } catch (RemoteException e) {
+            e.rethrowFromSystemServer();
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if uid belongs to Screen2Auto, and package has matching signature
+     *
+     * @hide
+     */
+    public static boolean isScreen2Auto(int uid) {
+        if (PACKAGE_SCREEN2AUTO == null) {
+            return false;
+        }
+        if ((uid != -1) && (uid == screen2AutoUid)) {
+            return true;
+        }
+        return uidBelongsToPackage(uid, PACKAGE_SCREEN2AUTO) && isScreen2Auto(PACKAGE_SCREEN2AUTO);
+    }
+
+    /**
+     * Checks if packageName is Screen2Auto and signingDetails match
+     *
+     * @hide
+     */
+    public static boolean isScreen2Auto(String packageName, SigningDetails signingDetails) {
+        if (PACKAGE_SCREEN2AUTO == null) {
+            return false;
+        }
+        if (PACKAGE_SCREEN2AUTO.equals(packageName)
+                && signingDetails.hasAncestorOrSelfWithDigest(new ArraySet<>(Collections.singletonList(SIGNATURE_SCREEN2AUTO)))) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Checks if additional permission should be granted
      *
      * @hide
@@ -204,6 +299,19 @@ public final class AndroidAutoHelper {
         if (PACKAGE_ANDROIDAUTO.equals(packageName) && isAndroidAuto(packageName, signingDetails)
                 && PERMISSIONS_ANDROIDAUTO.contains(permissionName)) {
             return true;
+        }
+
+        if (PACKAGE_SCREEN2AUTO == null) {
+            return false;
+        }
+
+        if (PACKAGE_SCREEN2AUTO.equals(packageName) && androidAutoActive && isScreen2Auto(packageName, signingDetails)) {
+            if (PERMISSIONS_SCREEN2AUTO.contains(permissionName)) {
+                return true;
+            }
+            if (screenCaptureActive && PERMISSIONS_SCREEN2AUTO_DURING_SCREENCAPTURE.contains(permissionName)) {
+                return true;
+            }
         }
 
         return false;
@@ -221,5 +329,79 @@ public final class AndroidAutoHelper {
         String pkgName = appInfo.packageName;
 
         isAndroidAuto = isAndroidAuto(pkgName); // also checks signature
+        isScreen2Auto = isScreen2Auto(pkgName); // also checks signature
+    }
+
+    private static void handleDisplayChanged(String name, int ownerUid, boolean added)
+    {
+        if (name.equals("Dashboard") && isAndroidAuto(ownerUid)) {
+            androidAutoActive = added;
+        }
+        if (name.equals("ScreenCapture") && isScreen2Auto(ownerUid)) {
+            setScreenCaptureActive(added);
+        }
+    }
+
+    /** @hide */
+    public static void handleDisplayAdded(String name, int ownerUid) {
+        handleDisplayChanged(name, ownerUid, true);
+    }
+
+    /** @hide */
+    public static void handleDisplayRemoved(String name, int ownerUid) {
+        handleDisplayChanged(name, ownerUid, false);
+    }
+
+    /**
+     * adds/removes Screen2Auto's accessibility service when "ScreenCapture" display device is added/removed.
+     * */
+    private static void setScreenCaptureActive(boolean screenCaptureActiveStatus) {
+        screenCaptureActive = screenCaptureActiveStatus;
+
+        String accessibilityService = PACKAGE_SCREEN2AUTO + "/ru.inceptive.screentwoauto.services.SplitScreenService";
+
+        int accessibilityEnabled = 0;
+
+        try {
+            accessibilityEnabled = Settings.Secure.getInt(
+                    context.getContentResolver(),
+                    android.provider.Settings.Secure.ACCESSIBILITY_ENABLED);
+
+            if (accessibilityEnabled == 0) {
+                Settings.Secure.putInt(context.getContentResolver(),
+                        android.provider.Settings.Secure.ACCESSIBILITY_ENABLED, 1);
+            }
+
+            String services = Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (screenCaptureActiveStatus && ((services == null) || !services.contains(accessibilityService))) {
+                if (services == null) {
+                    services = "";
+                }
+                if (services.length() > 0) {
+                    services += ":";
+                }
+                services += accessibilityService;
+            } else if (!screenCaptureActiveStatus && (services != null) && services.contains(accessibilityService)) {
+                services = services.replace(accessibilityService, "");
+            }
+
+            services = services.replace("::", ":");
+            if (services.length() <= 1) {
+                services = null;
+            }
+
+            Settings.Secure.putString(context.getContentResolver(),
+                    Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, services);
+        } catch (Exception ignored) {}
+    }
+
+    /** @hide */
+    public static boolean isScreenCaptureActive() {
+        return screenCaptureActive;
+    }
+
+    /** @hide */
+    public static boolean shouldSpoofSelfPermissionCheck(String perm) {
+        return isScreen2Auto && SPOOF_PERMISSIONS_SCREEN2AUTO.contains(perm);
     }
 }

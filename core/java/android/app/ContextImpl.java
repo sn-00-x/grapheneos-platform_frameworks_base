@@ -29,6 +29,7 @@ import android.annotation.Nullable;
 import android.annotation.SuppressLint;
 import android.annotation.UiContext;
 import android.app.compat.gms.GmsCompat;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.companion.virtual.VirtualDeviceManager;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.AttributionSource;
@@ -2377,6 +2378,10 @@ class ContextImpl extends Context {
             if (GmsHooks.shouldSpoofSelfPermissionCheck(permission)) {
                 return PERMISSION_GRANTED;
             }
+        }
+
+        if (AndroidAutoHelper.shouldSpoofSelfPermissionCheck(permission)) {
+            return PERMISSION_GRANTED;
         }
 
         return checkPermission(permission, Process.myPid(), Process.myUid());
