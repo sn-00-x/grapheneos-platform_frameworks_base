@@ -16,6 +16,7 @@
 
 package com.android.server.pm;
 
+import static android.content.Intent.ACTION_MAIN;
 import static android.content.pm.PackageManager.INSTALL_FAILED_SHARED_USER_INCOMPATIBLE;
 import static android.content.pm.PackageManager.INSTALL_FAILED_UPDATE_INCOMPATIBLE;
 import static android.content.pm.PackageManager.INSTALL_FAILED_VERSION_DOWNGRADE;
@@ -42,6 +43,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.UserIdInt;
 import android.app.ActivityManager;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.compat.annotation.ChangeId;
 import android.compat.annotation.Disabled;
 import android.content.Context;
@@ -1176,6 +1178,11 @@ public class PackageManagerServiceUtils {
             List<ResolveInfo> resolveInfos, boolean isReceiver,
             Intent intent, String resolvedType, int filterCallingUid) {
         if (DISABLE_ENFORCE_INTENTS_TO_MATCH_INTENT_FILTERS.get()) return;
+
+        // Allow screen2auto to start apps targeting Android 13
+        if (ACTION_MAIN.equals(intent.getAction()) && AndroidAutoHelper.isScreen2Auto(filterCallingUid)) {
+            return;
+        }
 
         final Printer logPrinter = DEBUG_INTENT_MATCHING
                 ? new LogPrinter(Log.VERBOSE, TAG, Log.LOG_ID_SYSTEM)
