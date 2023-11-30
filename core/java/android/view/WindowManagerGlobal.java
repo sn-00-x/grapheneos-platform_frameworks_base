@@ -19,6 +19,7 @@ package android.view;
 import android.animation.ValueAnimator;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.compat.sn00x.AndroidAutoHelper;
 import android.compat.annotation.UnsupportedAppUsage;
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -324,6 +325,10 @@ public final class WindowManagerGlobal {
             throw new IllegalArgumentException("Params must be WindowManager.LayoutParams");
         }
 
+        if (AndroidAutoHelper.isMediaAppContext()) {
+            ((WindowManager.LayoutParams) params).flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
+        }
+
         final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams) params;
         if (parentWindow != null) {
             parentWindow.adjustLayoutParamsForSubWindow(wparams);
@@ -426,6 +431,10 @@ public final class WindowManagerGlobal {
         }
         if (!(params instanceof WindowManager.LayoutParams)) {
             throw new IllegalArgumentException("Params must be WindowManager.LayoutParams");
+        }
+
+        if (AndroidAutoHelper.isMediaAppContext()) {
+            ((WindowManager.LayoutParams) params).flags &= ~WindowManager.LayoutParams.FLAG_SECURE;
         }
 
         final WindowManager.LayoutParams wparams = (WindowManager.LayoutParams)params;

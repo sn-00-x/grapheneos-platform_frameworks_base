@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * This class provides helpers for Android Auto and screen2auto.
+ * This class provides helpers for Android Auto, screen2auto and media app compatibility.
  *
  * @hide
  */
@@ -49,6 +49,12 @@ public final class AndroidAutoHelper {
     // change the following two lines for screen2auto support
     private static final String PACKAGE_SCREEN2AUTO = null;
     private static final String SIGNATURE_SCREEN2AUTO = null;
+    private static final List<String> PACKAGES_MEDIAAPPS = Arrays.asList(
+            "com.netflix.mediaclient", // Netflix
+            "com.amazon.avod.thirdpartyclient", // Amazon Prime
+            "com.disney.disneyplus", // Disney+
+            "com.spotify.music" // Spotify
+    );
 
     private static boolean androidAutoActive = false;
     private static boolean screenCaptureActive = false;
@@ -95,6 +101,7 @@ public final class AndroidAutoHelper {
 
     private static boolean isAndroidAuto = false;
     private static boolean isScreen2Auto = false;
+    private static boolean isMediaApp = false;
     private static Context context;
 
     private static int androidAutoUid = -1;
@@ -318,6 +325,16 @@ public final class AndroidAutoHelper {
     }
 
     /** @hide */
+    public static boolean isMediaAppContext() {
+        return isMediaApp;
+    }
+
+    /** @hide */
+    public static boolean isMediaApp(int uid) {
+        return uidBelongsToOneOfPackages(uid, PACKAGES_MEDIAAPPS);
+    }
+
+    /** @hide */
     public static void applicationStart(Context context) {
         AndroidAutoHelper.context = context;
         ApplicationInfo appInfo = context.getApplicationInfo();
@@ -330,6 +347,7 @@ public final class AndroidAutoHelper {
 
         isAndroidAuto = isAndroidAuto(pkgName); // also checks signature
         isScreen2Auto = isScreen2Auto(pkgName); // also checks signature
+        isMediaApp = PACKAGES_MEDIAAPPS.contains(pkgName);
     }
 
     private static void handleDisplayChanged(String name, int ownerUid, boolean added)
